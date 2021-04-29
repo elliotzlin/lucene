@@ -54,7 +54,7 @@ public final class TermVectorEntry {
     pe.nextDoc();
     int freq = pe.freq();
     for (int i = 0; i < freq; i++) {
-      int pos = pe.nextPosition();
+      int pos = (int) pe.nextPosition();
       if (pos < 0) {
         // no position information available
         continue;

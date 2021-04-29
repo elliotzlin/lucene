@@ -151,7 +151,7 @@ public final class TokenStreamFromTermVector extends TokenStream {
       final int freq = dpEnum.freq();
       // sumFreq += freq;
       for (int j = 0; j < freq; j++) {
-        int pos = dpEnum.nextPosition();
+        int pos = (int) dpEnum.nextPosition();
         TokenLL token = new TokenLL();
         token.termCharsOff = termCharsOff;
         token.termCharsLen = (short) Math.min(termCharsLen, Short.MAX_VALUE);

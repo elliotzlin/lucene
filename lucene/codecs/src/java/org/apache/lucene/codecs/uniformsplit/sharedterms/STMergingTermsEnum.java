@@ -171,7 +171,7 @@ public class STMergingTermsEnum extends TermsEnum {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return postingsEnum.nextPosition();
     }
 

@@ -152,7 +152,7 @@ class SimpleTextFieldsWriter extends FieldsConsumer {
 
               // for each pos in field+term+doc
               for (int i = 0; i < freq; i++) {
-                int position = postingsEnum.nextPosition();
+                int position = (int) postingsEnum.nextPosition();
 
                 write(POS);
                 write(Integer.toString(position));

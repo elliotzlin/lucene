@@ -424,14 +424,15 @@ public class AssertingLeafReader extends FilterLeafReader {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       assert state != DocsEnumState.START : "nextPosition() called before nextDoc()/advance()";
       assert state != DocsEnumState.FINISHED : "nextPosition() called after NO_MORE_DOCS";
       assert positionCount < positionMax : "nextPosition() called more than freq() times!";
-      int position = super.nextPosition();
+      long posLenPos = super.nextPosition();
+      int position = (int) posLenPos;
       assert position >= 0 || position == -1 : "invalid position: " + position;
       positionCount++;
-      return position;
+      return posLenPos;
     }
 
     @Override
@@ -508,7 +509,7 @@ public class AssertingLeafReader extends FilterLeafReader {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return assertingPostings.nextPosition();
     }
 

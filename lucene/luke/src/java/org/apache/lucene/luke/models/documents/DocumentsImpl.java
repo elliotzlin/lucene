@@ -284,7 +284,7 @@ public final class DocumentsImpl extends LukeModel implements Documents {
       int freq = penum.freq();
 
       for (int i = 0; i < freq; i++) {
-        int position = penum.nextPosition();
+        int position = (int) penum.nextPosition();
         if (position < 0) {
           // no position information available
           continue;

@@ -91,7 +91,7 @@ public class TFValueSource extends TermFreqValueSource {
                 }
 
                 @Override
-                public int nextPosition() throws IOException {
+                public long nextPosition() throws IOException {
                   return -1;
                 }
 

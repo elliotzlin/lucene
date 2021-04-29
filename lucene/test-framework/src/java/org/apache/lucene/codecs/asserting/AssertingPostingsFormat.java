@@ -202,7 +202,7 @@ public final class AssertingPostingsFormat extends PostingsFormat {
                 int lastPos = -1;
                 int lastStartOffset = -1;
                 for (int i = 0; i < freq; i++) {
-                  int pos = postingsEnum.nextPosition();
+                  int pos = (int) postingsEnum.nextPosition();
                   assert pos >= lastPos
                       : "pos=" + pos + " vs lastPos=" + lastPos + " i=" + i + " freq=" + freq;
                   assert pos <= IndexWriter.MAX_POSITION

@@ -120,7 +120,7 @@ class PayloadFilteredTermIntervalsSource extends IntervalsSource {
             return pos = NO_MORE_INTERVALS;
           }
           upto--;
-          pos = pe.nextPosition();
+          pos = (int) pe.nextPosition();
         } while (filter.test(pe.getPayload()) == false);
         return pos;
       }
@@ -206,7 +206,7 @@ class PayloadFilteredTermIntervalsSource extends IntervalsSource {
             return false;
           }
           upto--;
-          pos = pe.nextPosition();
+          pos = (int) pe.nextPosition();
         } while (filter.test(pe.getPayload()) == false);
         return true;
       }

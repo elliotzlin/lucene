@@ -151,7 +151,7 @@ class TaxonomyIndexArrays extends ParallelTaxonomyArrays implements Accountable 
               "Missing parent data for category " + i, reader.toString());
         }
 
-        parents[i] = positions.nextPosition();
+        parents[i] = (int) positions.nextPosition();
 
         if (positions.nextDoc() == DocIdSetIterator.NO_MORE_DOCS) {
           if (i + 1 < num) {

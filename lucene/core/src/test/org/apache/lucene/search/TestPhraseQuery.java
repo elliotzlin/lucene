@@ -962,7 +962,7 @@ public class TestPhraseQuery extends LuceneTestCase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       throw new UnsupportedOperationException();
     }
 

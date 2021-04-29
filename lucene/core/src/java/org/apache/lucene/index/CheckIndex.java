@@ -1387,7 +1387,7 @@ public final class CheckIndex implements Closeable {
           int lastOffset = 0;
           if (hasPositions) {
             for (int j = 0; j < freq; j++) {
-              final int pos = postings.nextPosition();
+              final int pos = (int) postings.nextPosition();
 
               if (pos < 0) {
                 throw new RuntimeException(
@@ -1542,7 +1542,7 @@ public final class CheckIndex implements Closeable {
               int lastPosition = -1;
               int lastOffset = 0;
               for (int posUpto = 0; posUpto < freq; posUpto++) {
-                final int pos = postings.nextPosition();
+                final int pos = (int) postings.nextPosition();
 
                 if (pos < 0) {
                   throw new RuntimeException("position " + pos + " is out of bounds");
@@ -3397,9 +3397,9 @@ public final class CheckIndex implements Closeable {
                     // Term vectors has prox?
                     if (hasProx) {
                       for (int i = 0; i < tf; i++) {
-                        int pos = postings.nextPosition();
+                        int pos = (int) postings.nextPosition();
                         if (postingsTerms.hasPositions()) {
-                          int postingsPos = postingsDocs.nextPosition();
+                          int postingsPos = (int) postingsDocs.nextPosition();
                           if (terms.hasPositions() && pos != postingsPos) {
                             throw new RuntimeException(
                                 "vector term="

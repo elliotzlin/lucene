@@ -279,7 +279,7 @@ public abstract class FilterLeafReader extends LeafReader {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return in.nextPosition();
     }
 

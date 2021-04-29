@@ -81,10 +81,11 @@ public abstract class PostingsEnum extends DocIdSetIterator {
   public abstract int freq() throws IOException;
 
   /**
-   * Returns the next position, or -1 if positions were not indexed. Calling this more than {@link
-   * #freq()} times is undefined.
+   * Returns the next position and position length, or -1 if positions were not indexed. The
+   * position is stored in the 32 least significant bits of the long and the position length in the
+   * 32 most significant bits. Calling this more than {@link #freq()} times is undefined.
    */
-  public abstract int nextPosition() throws IOException;
+  public abstract long nextPosition() throws IOException;
 
   /** Returns start offset for the current position, or -1 if offsets were not indexed. */
   public abstract int startOffset() throws IOException;

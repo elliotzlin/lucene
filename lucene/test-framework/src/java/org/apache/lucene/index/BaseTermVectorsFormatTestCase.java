@@ -468,7 +468,7 @@ public abstract class BaseTermVectorsFormatTestCase extends BaseIndexFileFormatT
         final int freq = docsAndPositionsEnum.freq();
         assertEquals(tk.freqs.get(termsEnum.term().utf8ToString()), (Integer) freq);
         for (int k = 0; k < freq; ++k) {
-          final int position = docsAndPositionsEnum.nextPosition();
+          final int position = (int) docsAndPositionsEnum.nextPosition();
           final Set<Integer> indexes;
           if (terms.hasPositions()) {
             indexes = tk.positionToTerms.get(position);

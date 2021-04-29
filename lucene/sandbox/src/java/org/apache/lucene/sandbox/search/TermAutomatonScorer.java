@@ -144,7 +144,7 @@ class TermAutomatonScorer extends Scorer {
           EnumAndScorer sub = subsOnDoc[i];
           if (sub.posEnum.nextDoc() != NO_MORE_DOCS) {
             sub.posLeft = sub.posEnum.freq() - 1;
-            sub.pos = sub.posEnum.nextPosition();
+            sub.pos = (int) sub.posEnum.nextPosition();
           }
         }
         pushCurrentDoc();
@@ -161,7 +161,7 @@ class TermAutomatonScorer extends Scorer {
           while (top.posEnum.docID() < target) {
             if (top.posEnum.advance(target) != NO_MORE_DOCS) {
               top.posLeft = top.posEnum.freq() - 1;
-              top.pos = top.posEnum.nextPosition();
+              top.pos = (int) top.posEnum.nextPosition();
             }
             top = docIDQueue.updateTop();
           }
@@ -172,7 +172,7 @@ class TermAutomatonScorer extends Scorer {
           EnumAndScorer sub = subsOnDoc[i];
           if (sub.posEnum.advance(target) != NO_MORE_DOCS) {
             sub.posLeft = sub.posEnum.freq() - 1;
-            sub.pos = sub.posEnum.nextPosition();
+            sub.pos = (int) sub.posEnum.nextPosition();
           }
         }
         pushCurrentDoc();
@@ -197,7 +197,7 @@ class TermAutomatonScorer extends Scorer {
             EnumAndScorer sub = subsOnDoc[i];
             if (sub.posEnum.nextDoc() != NO_MORE_DOCS) {
               sub.posLeft = sub.posEnum.freq() - 1;
-              sub.pos = sub.posEnum.nextPosition();
+              sub.pos = (int) sub.posEnum.nextPosition();
             }
           }
           pushCurrentDoc();
@@ -330,7 +330,7 @@ class TermAutomatonScorer extends Scorer {
 
       if (sub.posLeft > 0) {
         // Put this sub back into the posQueue:
-        sub.pos = sub.posEnum.nextPosition();
+        sub.pos = (int) sub.posEnum.nextPosition();
         sub.posLeft--;
         posQueue.add(sub);
       }

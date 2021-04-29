@@ -41,7 +41,7 @@ public final class ExactPhraseMatcher extends PhraseMatcher {
   private static class PostingsAndPosition {
     private final PostingsEnum postings;
     private final int offset;
-    private int freq, upTo, pos;
+    private int freq, upTo, pos, posLen;
 
     public PostingsAndPosition(PostingsEnum postings, int offset) {
       this.postings = postings;
@@ -112,7 +112,9 @@ public final class ExactPhraseMatcher extends PhraseMatcher {
       if (posting.upTo == posting.freq) {
         return false;
       } else {
-        posting.pos = posting.postings.nextPosition();
+        final long posLenPos = posting.postings.nextPosition();
+        posting.pos = (int) posLenPos;
+        posting.posLen = (int) (posLenPos >> 32);
         posting.upTo += 1;
       }
     }
@@ -124,6 +126,7 @@ public final class ExactPhraseMatcher extends PhraseMatcher {
     for (PostingsAndPosition posting : postings) {
       posting.freq = posting.postings.freq();
       posting.pos = -1;
+      posting.posLen = -1;
       posting.upTo = 0;
     }
   }
@@ -132,7 +135,9 @@ public final class ExactPhraseMatcher extends PhraseMatcher {
   public boolean nextMatch() throws IOException {
     final PostingsAndPosition lead = postings[0];
     if (lead.upTo < lead.freq) {
-      lead.pos = lead.postings.nextPosition();
+      final long posLenPos = lead.postings.nextPosition();
+      lead.pos = (int) posLenPos;
+      lead.posLen = (int) (posLenPos >> 32);
       lead.upTo += 1;
     } else {
       return false;
@@ -140,9 +145,10 @@ public final class ExactPhraseMatcher extends PhraseMatcher {
     advanceHead:
     while (true) {
       final int phrasePos = lead.pos - lead.offset;
+      PostingsAndPosition prev = lead;
       for (int j = 1; j < postings.length; ++j) {
         final PostingsAndPosition posting = postings[j];
-        final int expectedPos = phrasePos + posting.offset;
+        final int expectedPos = prev.pos + prev.posLen;
 
         // advance up to the same position as the lead
         if (advancePosition(posting, expectedPos) == false) {
@@ -156,6 +162,7 @@ public final class ExactPhraseMatcher extends PhraseMatcher {
             break advanceHead;
           }
         }
+        prev = posting;
       }
       return true;
     }

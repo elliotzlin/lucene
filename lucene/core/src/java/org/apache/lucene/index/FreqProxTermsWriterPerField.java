@@ -81,18 +81,21 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
     return true;
   }
 
-  void writeProx(int termID, int proxCode) {
+  void writeProx(int termID, int proxCode, int posLen) {
     if (payloadAttribute == null) {
-      writeVInt(1, proxCode << 1);
+      writeVInt(1, proxCode);
+      writeVInt(1, posLen << 1);
     } else {
       BytesRef payload = payloadAttribute.getPayload();
       if (payload != null && payload.length > 0) {
-        writeVInt(1, (proxCode << 1) | 1);
+        writeVInt(1, proxCode);
+        writeVInt(1, (posLen << 1) | 1);
         writeVInt(1, payload.length);
         writeBytes(1, payload.bytes, payload.offset, payload.length);
         sawPayloads = true;
       } else {
-        writeVInt(1, proxCode << 1);
+        writeVInt(1, proxCode);
+        writeVInt(1, posLen << 1);
       }
     }
 
@@ -124,7 +127,7 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
       postings.lastDocCodes[termID] = docID << 1;
       postings.termFreqs[termID] = getTermFreq();
       if (hasProx) {
-        writeProx(termID, fieldState.position);
+        writeProx(termID, fieldState.position, fieldState.getPositionlength());
         if (hasOffsets) {
           writeOffsets(termID, fieldState.offset);
         }
@@ -180,7 +183,7 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
       postings.lastDocCodes[termID] = (docID - postings.lastDocIDs[termID]) << 1;
       postings.lastDocIDs[termID] = docID;
       if (hasProx) {
-        writeProx(termID, fieldState.position);
+        writeProx(termID, fieldState.position, fieldState.getPositionlength());
         if (hasOffsets) {
           postings.lastOffsets[termID] = 0;
           writeOffsets(termID, fieldState.offset);
@@ -194,7 +197,9 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
       fieldState.maxTermFrequency =
           Math.max(fieldState.maxTermFrequency, postings.termFreqs[termID]);
       if (hasProx) {
-        writeProx(termID, fieldState.position - postings.lastPositions[termID]);
+        writeProx(termID,
+            fieldState.position - postings.lastPositions[termID],
+            fieldState.getPositionlength());
         if (hasOffsets) {
           writeOffsets(termID, fieldState.offset);
         }

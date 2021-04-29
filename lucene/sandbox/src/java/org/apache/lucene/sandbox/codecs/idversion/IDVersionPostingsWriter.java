@@ -104,7 +104,7 @@ final class IDVersionPostingsWriter extends PushPostingsWriterBase {
   }
 
   @Override
-  public void addPosition(int position, BytesRef payload, int startOffset, int endOffset)
+  public void addPosition(int position, int positionLength, BytesRef payload, int startOffset, int endOffset)
       throws IOException {
     if (lastDocID == -1) {
       // Doc is deleted; skip it

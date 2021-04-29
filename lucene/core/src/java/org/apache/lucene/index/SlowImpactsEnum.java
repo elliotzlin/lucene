@@ -83,7 +83,7 @@ public final class SlowImpactsEnum extends ImpactsEnum {
   }
 
   @Override
-  public int nextPosition() throws IOException {
+  public long nextPosition() throws IOException {
     return delegate.nextPosition();
   }
 

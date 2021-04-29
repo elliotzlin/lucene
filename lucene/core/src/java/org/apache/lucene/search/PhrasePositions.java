@@ -22,10 +22,14 @@ import org.apache.lucene.index.*;
 /** Position of a term in a document that takes into account the term offset within the phrase. */
 final class PhrasePositions {
   int position; // position in doc
+  int pos; // actual position in doc
+  int posLen; // position length in doc
+  int posLenOffset; // cumulative sum of previous positions' posLen - 1
   int count; // remaining pos in this doc
   int offset; // position in phrase
   final int ord; // unique across all PhrasePositions instances
   final PostingsEnum postings; // stream of docs & positions
+  PhrasePositions prev; // used to make lists
   PhrasePositions next; // used to make lists
   int rptGroup = -1; // >=0 indicates that this is a repeating PP
   int rptInd; // index in the rptGroup
@@ -36,11 +40,20 @@ final class PhrasePositions {
     offset = o;
     this.ord = ord;
     this.terms = terms;
+    this.pos = -1;
+    this.posLen = -1;
   }
 
   final void firstPosition() throws IOException {
     count = postings.freq(); // read first pos
     nextPosition();
+  }
+
+  final void setNextPosition() {
+    if (next != null && next.pos > -1) {
+      next.posLenOffset = posLenOffset + posLen - 1;
+      next.position = next.pos - next.posLenOffset - next.offset;
+    }
   }
 
   /**
@@ -50,7 +63,19 @@ final class PhrasePositions {
    */
   final boolean nextPosition() throws IOException {
     if (count-- > 0) { // read subsequent pos's
-      position = postings.nextPosition() - offset;
+      int oldPosLen = posLen;
+      final long posLenPos = postings.nextPosition();
+      pos = (int) posLenPos;
+      posLen = (int) (posLenPos >> 32);
+      // Update subsequent positions' posLenOffset
+      if (posLen != oldPosLen) {
+        PhrasePositions iter = this;
+        while (iter.next != null) {
+          iter.setNextPosition();
+          iter = iter.next;
+        }
+      }
+      position = pos - posLenOffset - offset;
       return true;
     } else {
       return false;
@@ -60,7 +85,7 @@ final class PhrasePositions {
   /** for debug purposes */
   @Override
   public String toString() {
-    String s = "o:" + offset + " p:" + position + " c:" + count;
+    String s = "o:" + offset + " p:" + position + " pl:" + posLen + " c:" + count;
     if (rptGroup >= 0) {
       s += " rpt:" + rptGroup + ",i" + rptInd;
     }

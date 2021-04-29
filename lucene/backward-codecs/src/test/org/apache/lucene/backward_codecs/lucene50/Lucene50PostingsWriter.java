@@ -280,7 +280,7 @@ public final class Lucene50PostingsWriter extends PushPostingsWriterBase {
   }
 
   @Override
-  public void addPosition(int position, BytesRef payload, int startOffset, int endOffset)
+  public void addPosition(int position, int positionLength, BytesRef payload, int startOffset, int endOffset)
       throws IOException {
     if (position > IndexWriter.MAX_POSITION) {
       throw new CorruptIndexException(

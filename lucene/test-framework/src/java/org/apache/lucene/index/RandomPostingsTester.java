@@ -350,7 +350,7 @@ public class RandomPostingsTester {
     }
 
     @Override
-    public int nextPosition() {
+    public long nextPosition() {
       if (!doPositions) {
         posUpto = freq;
         return -1;
@@ -390,7 +390,8 @@ public class RandomPostingsTester {
       offset = endOffset;
 
       posUpto++;
-      return pos;
+      // TODO(Elliot): Assumes position length of 1...
+      return (((long) 1) << 32) | (pos & 0xffffffffL);
     }
 
     @Override
@@ -1103,7 +1104,7 @@ public class RandomPostingsTester {
         }
 
         for (int i = 0; i < numPosToConsume; i++) {
-          int pos = expected.nextPosition();
+          int pos = (int) expected.nextPosition();
           if (LuceneTestCase.VERBOSE) {
             System.out.println("    now nextPosition to " + pos);
           }
@@ -1210,7 +1211,7 @@ public class RandomPostingsTester {
         int freq = postings.freq();
         assertEquals("freq is wrong", freq, impactsEnum.freq());
         for (int i = 0; i < freq; ++i) {
-          int pos = postings.nextPosition();
+          int pos = (int) postings.nextPosition();
           assertEquals("position is wrong", pos, impactsEnum.nextPosition());
           if (doCheckOffsets) {
             assertEquals("startOffset is wrong", postings.startOffset(), impactsEnum.startOffset());
@@ -1295,7 +1296,7 @@ public class RandomPostingsTester {
         int freq = postings.freq();
         assertEquals("freq is wrong", freq, impactsEnum.freq());
         for (int i = 0; i < postings.freq(); ++i) {
-          int pos = postings.nextPosition();
+          int pos = (int) postings.nextPosition();
           assertEquals("position is wrong", pos, impactsEnum.nextPosition());
           if (doCheckOffsets) {
             assertEquals("startOffset is wrong", postings.startOffset(), impactsEnum.startOffset());

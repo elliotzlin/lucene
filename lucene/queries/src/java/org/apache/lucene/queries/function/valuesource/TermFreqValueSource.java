@@ -80,7 +80,7 @@ public class TermFreqValueSource extends DocFreqValueSource {
                 }
 
                 @Override
-                public int nextPosition() throws IOException {
+                public long nextPosition() throws IOException {
                   return -1;
                 }
 

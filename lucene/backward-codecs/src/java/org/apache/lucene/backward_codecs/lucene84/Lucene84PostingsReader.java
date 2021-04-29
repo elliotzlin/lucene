@@ -431,7 +431,7 @@ public final class Lucene84PostingsReader extends PostingsReaderBase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -991,7 +991,7 @@ public final class Lucene84PostingsReader extends PostingsReaderBase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       assert posPendingCount > 0;
 
       if (posPendingFP != -1) {
@@ -1034,7 +1034,8 @@ public final class Lucene84PostingsReader extends PostingsReaderBase {
 
       posBufferUpto++;
       posPendingCount--;
-      return position;
+      // TODO(Elliot): Assumes position length of 1...
+      return (((long) 1) << 32) | (position & 0xffffffffL);
     }
 
     @Override
@@ -1232,7 +1233,7 @@ public final class Lucene84PostingsReader extends PostingsReaderBase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -1504,7 +1505,7 @@ public final class Lucene84PostingsReader extends PostingsReaderBase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       assert posPendingCount > 0;
 
       if (posPendingFP != -1) {
@@ -1527,7 +1528,8 @@ public final class Lucene84PostingsReader extends PostingsReaderBase {
       position += posDeltaBuffer[posBufferUpto++];
 
       posPendingCount--;
-      return position;
+      // TODO(Elliot): Assumes position length of 1...
+      return (((long) 1) << 32) | (position & 0xffffffffL);
     }
 
     @Override
@@ -1982,7 +1984,7 @@ public final class Lucene84PostingsReader extends PostingsReaderBase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       if (indexHasPos == false || needsPositions == false) {
         return -1;
       }
@@ -2038,7 +2040,8 @@ public final class Lucene84PostingsReader extends PostingsReaderBase {
 
       posBufferUpto++;
       posPendingCount--;
-      return position;
+      // TODO(Elliot): Assumes position length of 1...
+      return (((long) 1) << 32) | (position & 0xffffffffL);
     }
 
     @Override

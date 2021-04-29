@@ -20,6 +20,7 @@ import org.apache.lucene.analysis.TokenStream; // javadocs
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermFrequencyAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.util.AttributeSource;
@@ -48,6 +49,7 @@ public final class FieldInvertState {
 
   OffsetAttribute offsetAttribute;
   PositionIncrementAttribute posIncrAttribute;
+  PositionLengthAttribute posLenAttribute;
   PayloadAttribute payloadAttribute;
   TermToBytesRefAttribute termAttribute;
   TermFrequencyAttribute termFreqAttribute;
@@ -99,6 +101,7 @@ public final class FieldInvertState {
       termAttribute = attributeSource.getAttribute(TermToBytesRefAttribute.class);
       termFreqAttribute = attributeSource.addAttribute(TermFrequencyAttribute.class);
       posIncrAttribute = attributeSource.addAttribute(PositionIncrementAttribute.class);
+      posLenAttribute = attributeSource.addAttribute(PositionLengthAttribute.class);
       offsetAttribute = attributeSource.addAttribute(OffsetAttribute.class);
       payloadAttribute = attributeSource.getAttribute(PayloadAttribute.class);
     }
@@ -111,6 +114,17 @@ public final class FieldInvertState {
    */
   public int getPosition() {
     return position;
+  }
+
+  /**
+   * Get the last processed term's position length attribute.
+   *
+   * See {@link PositionLengthAttribute}
+   *
+   * @return the position length
+   */
+  public int getPositionlength() {
+    return posLenAttribute.getPositionLength();
   }
 
   /**

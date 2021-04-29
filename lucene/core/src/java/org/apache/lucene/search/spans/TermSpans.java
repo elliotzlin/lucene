@@ -83,7 +83,7 @@ public class TermSpans extends Spans {
       return position = NO_MORE_POSITIONS;
     }
     int prevPosition = position;
-    position = postings.nextPosition();
+    position = (int) postings.nextPosition();
     assert position >= prevPosition : "prevPosition=" + prevPosition + " > position=" + position;
     assert position != NO_MORE_POSITIONS; // int endPosition not possible
     count++;

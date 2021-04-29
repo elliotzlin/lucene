@@ -699,8 +699,8 @@ public class TestStressIndexing2 extends LuceneTestCase {
           assertEquals(freq1, freq2);
 
           for (int posUpto = 0; posUpto < freq1; posUpto++) {
-            int pos1 = dpEnum1.nextPosition();
-            int pos2 = dpEnum2.nextPosition();
+            int pos1 = (int) dpEnum1.nextPosition();
+            int pos2 = (int) dpEnum2.nextPosition();
             assertEquals(pos1, pos2);
             if (terms1.hasOffsets()) {
               assertTrue(terms2.hasOffsets());

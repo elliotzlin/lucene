@@ -77,11 +77,12 @@ class SinglePostingsEnum extends PostingsEnum {
   }
 
   @Override
-  public int nextPosition() {
+  public long nextPosition() {
     assert pos == -1;
     pos = 0;
     IDVersionPostingsFormat.longToBytes(version, payload);
-    return pos;
+    // TODO(Elliot): Assuming position length of 1...
+    return (((long) 1) << 32) | (pos & 0xffffffffL);
   }
 
   @Override

@@ -371,7 +371,7 @@ public final class DirectPostingsFormat extends PostingsFormat {
               scratch.add(freq);
               if (hasPos) {
                 for (int pos = 0; pos < freq; pos++) {
-                  scratch.add(docsAndPositionsEnum.nextPosition());
+                  scratch.add((int) docsAndPositionsEnum.nextPosition());
                   if (hasOffsets) {
                     scratch.add(docsAndPositionsEnum.startOffset());
                     scratch.add(docsAndPositionsEnum.endOffset());
@@ -439,7 +439,7 @@ public final class DirectPostingsFormat extends PostingsFormat {
                 positions[upto] = new int[mult * freq];
                 int posUpto = 0;
                 for (int pos = 0; pos < freq; pos++) {
-                  positions[upto][posUpto] = docsAndPositionsEnum.nextPosition();
+                  positions[upto][posUpto] = (int) docsAndPositionsEnum.nextPosition();
                   if (hasPayloads) {
                     BytesRef payload = docsAndPositionsEnum.getPayload();
                     if (payload != null) {
@@ -1564,7 +1564,7 @@ public final class DirectPostingsFormat extends PostingsFormat {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -1636,7 +1636,7 @@ public final class DirectPostingsFormat extends PostingsFormat {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -1728,7 +1728,7 @@ public final class DirectPostingsFormat extends PostingsFormat {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -1844,7 +1844,7 @@ public final class DirectPostingsFormat extends PostingsFormat {
     }
 
     @Override
-    public int nextPosition() {
+    public long nextPosition() {
       assert skipPositions > 0;
       skipPositions--;
       pos = postings[upto++];
@@ -1857,7 +1857,8 @@ public final class DirectPostingsFormat extends PostingsFormat {
         lastPayloadOffset = payloadOffset;
         payloadOffset += payloadLength;
       }
-      return pos;
+      // TODO(Elliot): Assumes positiong length of 1...
+      return (((long) 1) << 32) | (pos & 0xffffffffL);
     }
 
     @Override
@@ -2045,7 +2046,7 @@ public final class DirectPostingsFormat extends PostingsFormat {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -2115,10 +2116,11 @@ public final class DirectPostingsFormat extends PostingsFormat {
     }
 
     @Override
-    public int nextPosition() {
+    public long nextPosition() {
       posUpto += posJump;
       assert posUpto < curPositions.length;
-      return curPositions[posUpto];
+      // TODO(Elliot): Assumes position length of 1...
+      return (((long) 1) << 32) | (curPositions[posUpto] & 0xffffffffL);
     }
 
     @Override

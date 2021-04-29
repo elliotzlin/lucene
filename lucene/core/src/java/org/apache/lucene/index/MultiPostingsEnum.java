@@ -143,7 +143,7 @@ public final class MultiPostingsEnum extends PostingsEnum {
   }
 
   @Override
-  public int nextPosition() throws IOException {
+  public long nextPosition() throws IOException {
     return current.nextPosition();
   }
 

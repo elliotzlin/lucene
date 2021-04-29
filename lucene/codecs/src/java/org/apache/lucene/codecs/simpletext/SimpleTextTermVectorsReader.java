@@ -435,7 +435,7 @@ public class SimpleTextTermVectorsReader extends TermVectorsReader {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -541,10 +541,11 @@ public class SimpleTextTermVectorsReader extends TermVectorsReader {
     }
 
     @Override
-    public int nextPosition() {
+    public long nextPosition() {
       if (positions != null) {
         assert nextPos < positions.length : "nextPosition() called more than freq() times!";
-        return positions[nextPos++];
+        // TODO(Elliot): Assumes position length of 1...
+        return (((long) 1) << 32) | (positions[nextPos++] & 0xffffffffL);
       } else {
         assert nextPos < startOffsets.length : "nextPosition() called more than freq() times!";
         nextPos++;

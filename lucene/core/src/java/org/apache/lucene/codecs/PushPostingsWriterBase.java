@@ -146,7 +146,9 @@ public abstract class PushPostingsWriterBase extends PostingsWriterBase {
 
       if (writePositions) {
         for (int i = 0; i < freq; i++) {
-          int pos = postingsEnum.nextPosition();
+          long posLenPos = postingsEnum.nextPosition();
+          int posLen = (int) (posLenPos >> 32);
+          int pos = (int) posLenPos;
           BytesRef payload = writePayloads ? postingsEnum.getPayload() : null;
           int startOffset;
           int endOffset;
@@ -157,7 +159,7 @@ public abstract class PushPostingsWriterBase extends PostingsWriterBase {
             startOffset = -1;
             endOffset = -1;
           }
-          addPosition(pos, payload, startOffset, endOffset);
+          addPosition(pos, posLen, payload, startOffset, endOffset);
         }
       }
 
@@ -182,12 +184,12 @@ public abstract class PushPostingsWriterBase extends PostingsWriterBase {
   public abstract void startDoc(int docID, int freq) throws IOException;
 
   /**
-   * Add a new position and payload, and start/end offset. A null payload means no payload; a
-   * non-null payload with zero length also means no payload. Caller may reuse the {@link BytesRef}
+   * Add a new position, position length and payload, and start/end offset. A null payload means no
+   * payload; a non-null payload with zero length also means no payload. Caller may reuse the {@link BytesRef}
    * for the payload between calls (method must fully consume the payload). <code>startOffset</code>
    * and <code>endOffset</code> will be -1 when offsets are not indexed.
    */
-  public abstract void addPosition(int position, BytesRef payload, int startOffset, int endOffset)
+  public abstract void addPosition(int position, int positionLength, BytesRef payload, int startOffset, int endOffset)
       throws IOException;
 
   /** Called when we are done adding positions and payloads for each doc. */

@@ -1622,7 +1622,7 @@ public class MemoryIndex {
       }
 
       @Override
-      public int nextPosition() {
+      public long nextPosition() {
         posUpto++;
         assert posUpto <= freq;
         assert !sliceReader.endOfSlice() : " stores offsets : " + startOffset;
@@ -1635,7 +1635,8 @@ public class MemoryIndex {
         if (storePayloads) {
           payloadIndex = sliceReader.readInt();
         }
-        return pos;
+        // TODO(Elliot): Assumes position length is 1...
+        return (((long) 1) << 32) | (pos & 0xffffffffL);
       }
 
       @Override

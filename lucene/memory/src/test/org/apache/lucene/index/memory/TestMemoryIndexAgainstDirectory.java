@@ -743,8 +743,8 @@ public class TestMemoryIndexAgainstDirectory extends BaseTokenStreamTestCase {
       assertThat(freq, equalTo(memDocsPosEnum.freq()));
       for (int i = 0; i < freq; i++) {
         String failDesc = " (field:" + field_name + " term:" + currentTerm + ")";
-        int memPos = memDocsPosEnum.nextPosition();
-        int pos = docsPosEnum.nextPosition();
+        int memPos = (int) memDocsPosEnum.nextPosition();
+        int pos = (int) docsPosEnum.nextPosition();
         assertThat("Position test failed" + failDesc, memPos, equalTo(pos));
         assertThat(
             "Start offset test failed" + failDesc,

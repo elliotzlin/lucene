@@ -397,7 +397,7 @@ final class FreqProxTermsWriter extends TermsHash {
     // we buffer up docs/freqs only, don't forward any positions requests to underlying enum
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -492,6 +492,7 @@ final class FreqProxTermsWriter extends TermsHash {
 
     private int docIt = -1;
     private int pos;
+    private int posLen;
     private int startOffset = -1;
     private int endOffset = -1;
     private final BytesRef payload;
@@ -562,11 +563,14 @@ final class FreqProxTermsWriter extends TermsHash {
       int previousPosition = 0;
       int previousEndOffset = 0;
       for (int i = 0; i < freq; i++) {
-        final int pos = in.nextPosition();
+        final long posLenPos = in.nextPosition();
+        final int pos = (int) posLenPos;
+        final int posLen = (int) (posLenPos >> 32);
         final BytesRef payload = in.getPayload();
         // The low-order bit of token is set only if there is a payload, the
-        // previous bits are the delta-encoded position.
-        final int token = (pos - previousPosition) << 1 | (payload == null ? 0 : 1);
+        // previous bits are the position length.
+        final int token = posLen << 1 | (payload == null ? 0 : 1);
+        out.writeVInt(pos - previousPosition);
         out.writeVInt(token);
         previousPosition = pos;
         if (storeOffsets) { // don't encode offsets if they are not stored
@@ -622,9 +626,11 @@ final class FreqProxTermsWriter extends TermsHash {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
+      final int posDelta = postingInput.readVInt();
       final int token = postingInput.readVInt();
-      pos += token >>> 1;
+      pos += posDelta;
+      posLen = token >>> 1;
       if (storeOffsets) {
         startOffset = endOffset + postingInput.readVInt();
         endOffset = startOffset + postingInput.readVInt();
@@ -639,7 +645,7 @@ final class FreqProxTermsWriter extends TermsHash {
       } else {
         payload.length = 0;
       }
-      return pos;
+      return (((long) posLen) << 32) | (pos & 0xffffffffL);
     }
 
     @Override

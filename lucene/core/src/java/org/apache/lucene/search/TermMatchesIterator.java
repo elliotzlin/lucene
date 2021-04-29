@@ -38,7 +38,7 @@ class TermMatchesIterator implements MatchesIterator {
   @Override
   public boolean next() throws IOException {
     if (upto-- > 0) {
-      pos = pe.nextPosition();
+      pos = (int) pe.nextPosition();
       return true;
     }
     return false;

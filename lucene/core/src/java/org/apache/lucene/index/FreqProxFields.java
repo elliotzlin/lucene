@@ -337,7 +337,7 @@ class FreqProxFields extends Fields {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -493,11 +493,12 @@ class FreqProxFields extends Fields {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       assert posLeft > 0;
       posLeft--;
+      int posDelta = posReader.readVInt();
       int code = posReader.readVInt();
-      pos += code >>> 1;
+      pos += posDelta;
       if ((code & 1) != 0) {
         hasPayload = true;
         // has a payload
@@ -513,7 +514,7 @@ class FreqProxFields extends Fields {
         endOffset = startOffset + posReader.readVInt();
       }
 
-      return pos;
+      return (((long) code >>> 1) << 32) | (pos & 0xffffffffL);
     }
 
     @Override

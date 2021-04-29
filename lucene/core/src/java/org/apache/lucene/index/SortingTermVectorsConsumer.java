@@ -186,7 +186,7 @@ final class SortingTermVectorsConsumer extends TermVectorsConsumer {
           assert docsAndPositionsEnum.freq() == freq;
 
           for (int posUpto = 0; posUpto < freq; posUpto++) {
-            final int pos = docsAndPositionsEnum.nextPosition();
+            final int pos = (int) docsAndPositionsEnum.nextPosition();
             final int startOffset = docsAndPositionsEnum.startOffset();
             final int endOffset = docsAndPositionsEnum.endOffset();
 

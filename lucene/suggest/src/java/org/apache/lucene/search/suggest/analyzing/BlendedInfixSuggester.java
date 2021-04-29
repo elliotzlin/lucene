@@ -334,7 +334,7 @@ public class BlendedInfixSuggester extends AnalyzingInfixSuggester {
         docPosEnum.nextDoc();
 
         // use the first occurrence of the term
-        int p = docPosEnum.nextPosition();
+        int p = (int) docPosEnum.nextPosition();
         if (p < position) {
           position = p;
         }

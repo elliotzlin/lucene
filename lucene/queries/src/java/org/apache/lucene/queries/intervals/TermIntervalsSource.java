@@ -116,7 +116,7 @@ class TermIntervalsSource extends IntervalsSource {
           return pos = NO_MORE_INTERVALS;
         }
         upto--;
-        return pos = pe.nextPosition();
+        return pos = (int) pe.nextPosition();
       }
 
       @Override
@@ -189,7 +189,7 @@ class TermIntervalsSource extends IntervalsSource {
           return false;
         }
         upto--;
-        pos = pe.nextPosition();
+        pos = (int) pe.nextPosition();
         return true;
       }
 

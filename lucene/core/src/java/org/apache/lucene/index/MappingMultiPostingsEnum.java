@@ -106,8 +106,10 @@ final class MappingMultiPostingsEnum extends PostingsEnum {
   }
 
   @Override
-  public int nextPosition() throws IOException {
-    int pos = current.postings.nextPosition();
+  public long nextPosition() throws IOException {
+    long posLenPos = current.postings.nextPosition();
+    int pos = (int) posLenPos;
+    int posLen = (int) (posLenPos >> 32);
     if (pos < 0) {
       throw new CorruptIndexException(
           "position=" + pos + " is negative, field=\"" + field + " doc=" + current.mappedDocID,
@@ -124,7 +126,7 @@ final class MappingMultiPostingsEnum extends PostingsEnum {
               + current.mappedDocID,
           current.postings.toString());
     }
-    return pos;
+    return (((long) posLen) << 32) | (pos & 0xffffffffL);
   }
 
   @Override

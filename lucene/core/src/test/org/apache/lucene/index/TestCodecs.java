@@ -394,7 +394,7 @@ public class TestCodecs extends LuceneTestCase {
     private void verifyPositions(final PositionData[] positions, final PostingsEnum posEnum)
         throws Throwable {
       for (int i = 0; i < positions.length; i++) {
-        final int pos = posEnum.nextPosition();
+        final int pos = (int) posEnum.nextPosition();
         assertEquals(positions[i].pos, pos);
         if (positions[i].payload != null) {
           assertNotNull(posEnum.getPayload());
@@ -815,9 +815,10 @@ public class TestCodecs extends LuceneTestCase {
     }
 
     @Override
-    public int nextPosition() {
+    public long nextPosition() {
       posUpto++;
-      return termData.positions[docUpto][posUpto].pos;
+      // TODO(Elliot): Assumes position length of 1...
+      return (((long) 1) << 32) | (termData.positions[docUpto][posUpto].pos & 0xffffffffL);
     }
 
     @Override

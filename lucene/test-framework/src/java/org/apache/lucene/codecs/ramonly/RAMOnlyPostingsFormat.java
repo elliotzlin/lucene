@@ -280,7 +280,7 @@ public final class RAMOnlyPostingsFormat extends PostingsFormat {
             postingsWriter.startDoc(docID, freq);
             if (writePositions) {
               for (int i = 0; i < freq; i++) {
-                int pos = postingsEnum.nextPosition();
+                int pos = (int) postingsEnum.nextPosition();
                 BytesRef payload = writePayloads ? postingsEnum.getPayload() : null;
                 int startOffset;
                 int endOffset;
@@ -491,9 +491,10 @@ public final class RAMOnlyPostingsFormat extends PostingsFormat {
     }
 
     @Override
-    public int nextPosition() {
+    public long nextPosition() {
       assert posUpto < current.positions.length;
-      return current.positions[posUpto++];
+      // TODO(Elliot): Assumes position length of 1...
+      return (((long) 1) << 32) | (current.positions[posUpto++] & 0xffffffffL);
     }
 
     @Override

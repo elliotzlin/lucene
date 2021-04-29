@@ -310,7 +310,9 @@ public abstract class TermVectorsWriter implements Closeable, Accountable {
           assert docsAndPositionsEnum.freq() == freq;
 
           for (int posUpto = 0; posUpto < freq; posUpto++) {
-            final int pos = docsAndPositionsEnum.nextPosition();
+            final long posLenPos = docsAndPositionsEnum.nextPosition();
+            final int posLen = (int) (posLenPos >> 32);
+            final int pos = (int) posLenPos;
             final int startOffset = docsAndPositionsEnum.startOffset();
             final int endOffset = docsAndPositionsEnum.endOffset();
 

@@ -288,7 +288,7 @@ class SimpleTextFieldsReader extends FieldsProducer {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -472,7 +472,7 @@ class SimpleTextFieldsReader extends FieldsProducer {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       if (readPositions) {
         SimpleTextUtil.readLine(in, scratch);
         assert StringHelper.startsWith(scratch.get(), POS)
@@ -511,7 +511,8 @@ class SimpleTextFieldsReader extends FieldsProducer {
         payload = null;
         in.seek(fp);
       }
-      return pos;
+      // TODO(Elliot): Assumes position length of 1...
+      return (((long) 1) << 32) | (pos & 0xffffffffL);
     }
 
     @Override

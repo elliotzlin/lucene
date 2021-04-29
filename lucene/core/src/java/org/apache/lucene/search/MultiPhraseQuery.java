@@ -450,7 +450,7 @@ public class MultiPhraseQuery extends Query {
           if (sub.docID() == doc) {
             int freq = sub.freq();
             for (int i = 0; i < freq; i++) {
-              posQueue.add(sub.nextPosition());
+              posQueue.add((int) sub.nextPosition());
             }
           }
         }
@@ -461,8 +461,9 @@ public class MultiPhraseQuery extends Query {
     }
 
     @Override
-    public int nextPosition() throws IOException {
-      return posQueue.next();
+    public long nextPosition() throws IOException {
+      // TODO(Elliot): Assumes position length of 1...
+      return (((long) 1) << 32) | (posQueue.next() & 0xffffffffL);
     }
 
     @Override
@@ -619,7 +620,7 @@ public class MultiPhraseQuery extends Query {
       posQueue.clear();
       for (PostingsAndPosition pp : subs) {
         if (pp.pe.docID() == doc) {
-          pp.pos = pp.pe.nextPosition();
+          pp.pos = (int) pp.pe.nextPosition();
           pp.upto = pp.pe.freq();
           posQueue.add(pp);
           freq += pp.upto;
@@ -629,7 +630,7 @@ public class MultiPhraseQuery extends Query {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       if (started == false) {
         started = true;
         return posQueue.top().pos;
@@ -638,10 +639,11 @@ public class MultiPhraseQuery extends Query {
         posQueue.pop();
         return posQueue.top().pos;
       }
-      posQueue.top().pos = posQueue.top().pe.nextPosition();
+      posQueue.top().pos = (int) posQueue.top().pe.nextPosition();
       posQueue.top().upto--;
       posQueue.updateTop();
-      return posQueue.top().pos;
+      // TODO(Elliot): Assumes position length of 1...
+      return (((long) 1) << 32) | (posQueue.top().pos & 0xffffffffL);
     }
 
     @Override

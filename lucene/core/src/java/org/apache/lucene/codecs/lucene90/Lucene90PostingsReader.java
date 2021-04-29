@@ -416,7 +416,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -568,6 +568,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     private final long[] docBuffer = new long[BLOCK_SIZE + 1];
     private final long[] freqBuffer = new long[BLOCK_SIZE + 1];
     private final long[] posDeltaBuffer = new long[BLOCK_SIZE];
+    private final long[] posLenBuffer = new long [BLOCK_SIZE];
 
     private final long[] payloadLengthBuffer;
     private final long[] offsetStartDeltaBuffer;
@@ -604,6 +605,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     private long accum; // accumulator for doc deltas
     private int freq; // freq we last read
     private int position; // current position
+    private int posLen; // current position length
 
     // how many positions "behind" we are; nextPosition must
     // skip these to "catch up":
@@ -778,12 +780,14 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
         payloadByteUpto = 0;
         for (int i = 0; i < count; i++) {
           int code = posIn.readVInt();
+          int posLen = posIn.readVInt();
           if (indexHasPayloads) {
-            if ((code & 1) != 0) {
+            if ((posLen & 1) != 0) {
               payloadLength = posIn.readVInt();
             }
             payloadLengthBuffer[i] = payloadLength;
-            posDeltaBuffer[i] = code >>> 1;
+            posDeltaBuffer[i] = code;
+            posLenBuffer[i] = posLen >>> 1;
             if (payloadLength != 0) {
               if (payloadByteUpto + payloadLength > payloadBytes.length) {
                 payloadBytes = ArrayUtil.grow(payloadBytes, payloadByteUpto + payloadLength);
@@ -793,6 +797,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
             }
           } else {
             posDeltaBuffer[i] = code;
+            posLenBuffer[i] = posLen;
           }
 
           if (indexHasOffsets) {
@@ -807,6 +812,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
         payloadByteUpto = 0;
       } else {
         pforUtil.decode(posIn, posDeltaBuffer);
+        pforUtil.decode(posIn, posLenBuffer);
 
         if (indexHasPayloads) {
           if (needsPayloads) {
@@ -974,7 +980,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       assert posPendingCount > 0;
 
       if (posPendingFP != -1) {
@@ -1000,6 +1006,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
         posBufferUpto = 0;
       }
       position += posDeltaBuffer[posBufferUpto];
+      posLen = (int) posLenBuffer[posBufferUpto];
 
       if (indexHasPayloads) {
         payloadLength = (int) payloadLengthBuffer[posBufferUpto];
@@ -1017,7 +1024,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
 
       posBufferUpto++;
       posPendingCount--;
-      return position;
+      return (((long) posLen) << 32) | (position & 0xffffffffL);
     }
 
     @Override
@@ -1213,7 +1220,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       return -1;
     }
 
@@ -1245,6 +1252,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     private final long[] docBuffer = new long[BLOCK_SIZE];
     private final long[] freqBuffer = new long[BLOCK_SIZE];
     private final long[] posDeltaBuffer = new long[BLOCK_SIZE];
+    private final long[] posLenBuffer = new long[BLOCK_SIZE];
 
     private int docBufferUpto;
     private int posBufferUpto;
@@ -1264,6 +1272,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     private long accum; // accumulator for doc deltas
     private int freq; // freq we last read
     private int position; // current position
+    private int posLen; // current position length
 
     // how many positions "behind" we are; nextPosition must
     // skip these to "catch up":
@@ -1369,16 +1378,19 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
         int payloadLength = 0;
         for (int i = 0; i < count; i++) {
           int code = posIn.readVInt();
+          int posLen = posIn.readVInt();
           if (indexHasPayloads) {
-            if ((code & 1) != 0) {
+            if ((posLen & 1) != 0) {
               payloadLength = posIn.readVInt();
             }
-            posDeltaBuffer[i] = code >>> 1;
+            posDeltaBuffer[i] = code;
+            posLenBuffer[i] = posLen >>> 1;
             if (payloadLength != 0) {
               posIn.seek(posIn.getFilePointer() + payloadLength);
             }
           } else {
             posDeltaBuffer[i] = code;
+            posLenBuffer[i] = posLen;
           }
           if (indexHasOffsets) {
             if ((posIn.readVInt() & 1) != 0) {
@@ -1389,6 +1401,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
         }
       } else {
         pforUtil.decode(posIn, posDeltaBuffer);
+        pforUtil.decode(posIn, posLenBuffer);
       }
     }
 
@@ -1483,7 +1496,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       assert posPendingCount > 0;
 
       if (posPendingFP != -1) {
@@ -1503,10 +1516,11 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
         refillPositions();
         posBufferUpto = 0;
       }
-      position += posDeltaBuffer[posBufferUpto++];
+      position += posDeltaBuffer[posBufferUpto];
+      posLen = (int) posLenBuffer[posBufferUpto++];
 
       posPendingCount--;
-      return position;
+      return (((long) posLen) << 32) | (position & 0xffffffffL);
     }
 
     @Override
@@ -1537,6 +1551,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     private final long[] docBuffer = new long[BLOCK_SIZE];
     private final long[] freqBuffer = new long[BLOCK_SIZE];
     private final long[] posDeltaBuffer = new long[BLOCK_SIZE];
+    private final long[] posLenBuffer = new long[BLOCK_SIZE];
 
     private final long[] payloadLengthBuffer;
     private final long[] offsetStartDeltaBuffer;
@@ -1572,6 +1587,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     private int doc; // doc we last read
     private long accum; // accumulator for doc deltas
     private int position; // current position
+    private int posLen; // current position length
 
     // how many positions "behind" we are; nextPosition must
     // skip these to "catch up":
@@ -1763,12 +1779,14 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
         payloadByteUpto = 0;
         for (int i = 0; i < count; i++) {
           int code = posIn.readVInt();
+          int posLen = posIn.readVInt();
           if (indexHasPayloads) {
-            if ((code & 1) != 0) {
+            if ((posLen & 1) != 0) {
               payloadLength = posIn.readVInt();
             }
             payloadLengthBuffer[i] = payloadLength;
-            posDeltaBuffer[i] = code >>> 1;
+            posDeltaBuffer[i] = code;
+            posLenBuffer[i] = posLen >>> 1;
             if (payloadLength != 0) {
               if (payloadByteUpto + payloadLength > payloadBytes.length) {
                 payloadBytes = ArrayUtil.grow(payloadBytes, payloadByteUpto + payloadLength);
@@ -1778,6 +1796,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
             }
           } else {
             posDeltaBuffer[i] = code;
+            posLenBuffer[i] = posLen;
           }
 
           if (indexHasOffsets) {
@@ -1792,6 +1811,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
         payloadByteUpto = 0;
       } else {
         pforUtil.decode(posIn, posDeltaBuffer);
+        pforUtil.decode(posIn, posLenBuffer);
 
         if (indexHasPayloads && payIn != null) {
           if (needsPayloads) {
@@ -1959,7 +1979,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       if (indexHasPos == false || needsPositions == false) {
         return -1;
       }
@@ -1998,6 +2018,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
         posBufferUpto = 0;
       }
       position += posDeltaBuffer[posBufferUpto];
+      posLen = (int) posLenBuffer[posBufferUpto];
 
       if (indexHasPayloads) {
         payloadLength = (int) payloadLengthBuffer[posBufferUpto];
@@ -2015,7 +2036,7 @@ public final class Lucene90PostingsReader extends PostingsReaderBase {
 
       posBufferUpto++;
       posPendingCount--;
-      return position;
+      return (((long) posLen) << 32) | (position & 0xffffffffL);
     }
 
     @Override

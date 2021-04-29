@@ -97,6 +97,10 @@ public final class SloppyPhraseMatcher extends PhraseMatcher {
     for (int i = 0; i < postings.length; ++i) {
       phrasePositions[i] =
           new PhrasePositions(postings[i].postings, postings[i].position, i, postings[i].terms);
+      if (i > 0) {
+        phrasePositions[i].prev = phrasePositions[i - 1];
+        phrasePositions[i - 1].next = phrasePositions[i];
+      }
     }
 
     approximation =
@@ -179,18 +183,18 @@ public final class SloppyPhraseMatcher extends PhraseMatcher {
     assert pp != null; // if the pq is not full, then positioned == false
     captureLead(pp);
     matchLength = end - pp.position;
-    int next = pq.top().position;
+    int next = pq.top().pos;
     while (advancePP(pp)) {
       if (hasRpts && !advanceRpts(pp)) {
         break; // pps exhausted
       }
-      if (pp.position > next) { // done minimizing current match-length
+      if (pp.pos > next) { // done minimizing current match-length
         pq.add(pp);
         if (matchLength <= slop) {
           return true;
         }
         pp = pq.pop();
-        next = pq.top().position;
+        next = pq.top().pos;
         assert pp != null; // if the pq is not full, then positioned == false
         matchLength = end - pp.position;
       } else {
@@ -406,6 +410,10 @@ public final class SloppyPhraseMatcher extends PhraseMatcher {
   private void placeFirstPositions() throws IOException {
     for (PhrasePositions pp : phrasePositions) {
       pp.firstPosition();
+    }
+    // Second loop to readjust positions once we've read in all pos's.
+    for (PhrasePositions pp : phrasePositions) {
+      pp.setNextPosition();
     }
   }
 

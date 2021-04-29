@@ -94,7 +94,7 @@ public class FieldTermStack {
       final int freq = dpEnum.freq();
 
       for (int i = 0; i < freq; i++) {
-        int pos = dpEnum.nextPosition();
+        int pos = (int) dpEnum.nextPosition();
         if (dpEnum.startOffset() < 0) {
           return; // no offsets, null snippet
         }

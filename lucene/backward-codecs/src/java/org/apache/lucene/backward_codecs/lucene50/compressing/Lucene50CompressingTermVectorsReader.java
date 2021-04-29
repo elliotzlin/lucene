@@ -1244,7 +1244,7 @@ public final class Lucene50CompressingTermVectorsReader extends TermVectorsReade
     }
 
     @Override
-    public int nextPosition() throws IOException {
+    public long nextPosition() throws IOException {
       if (doc != 0) {
         throw new IllegalStateException();
       } else if (i >= termFreq - 1) {
@@ -1261,7 +1261,8 @@ public final class Lucene50CompressingTermVectorsReader extends TermVectorsReade
       if (positions == null) {
         return -1;
       } else {
-        return positions[positionIndex + i];
+        // TODO(Elliot): Assumes position length of 1...
+        return (((long) 1) << 32) | (positions[positionIndex + 1] & 0xffffffffL);
       }
     }
 

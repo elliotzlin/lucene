@@ -71,6 +71,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
   private int docBufferUpto;
 
   final long[] posDeltaBuffer;
+  final long[] posLenBuffer;
   final long[] payloadLengthBuffer;
   final long[] offsetStartDeltaBuffer;
   final long[] offsetLengthBuffer;
@@ -122,6 +123,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
       pforUtil = new PForUtil(new ForUtil());
       if (state.fieldInfos.hasProx()) {
         posDeltaBuffer = new long[BLOCK_SIZE];
+        posLenBuffer = new long[BLOCK_SIZE];
         String posFileName =
             IndexFileNames.segmentFileName(
                 state.segmentInfo.name, state.segmentSuffix, Lucene90PostingsFormat.POS_EXTENSION);
@@ -157,6 +159,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
         }
       } else {
         posDeltaBuffer = null;
+        posLenBuffer = null;
         payloadLengthBuffer = null;
         offsetStartDeltaBuffer = null;
         offsetLengthBuffer = null;
@@ -282,7 +285,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
   }
 
   @Override
-  public void addPosition(int position, BytesRef payload, int startOffset, int endOffset)
+  public void addPosition(int position, int positionLength, BytesRef payload, int startOffset, int endOffset)
       throws IOException {
     if (position > IndexWriter.MAX_POSITION) {
       throw new CorruptIndexException(
@@ -297,6 +300,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
       throw new CorruptIndexException("position=" + position + " is < 0", docOut);
     }
     posDeltaBuffer[posBufferUpto] = position - lastPosition;
+    posLenBuffer[posBufferUpto] = positionLength;
     if (writePayloads) {
       if (payload == null || payload.length == 0) {
         // no payload
@@ -324,6 +328,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
     lastPosition = position;
     if (posBufferUpto == BLOCK_SIZE) {
       pforUtil.encode(posDeltaBuffer, posOut);
+      pforUtil.encode(posLenBuffer, posOut);
 
       if (writePayloads) {
         pforUtil.encode(payloadLengthBuffer, payOut);
@@ -415,14 +420,17 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
         int payloadBytesReadUpto = 0;
         for (int i = 0; i < posBufferUpto; i++) {
           final int posDelta = (int) posDeltaBuffer[i];
+          final int posLen = (int) posLenBuffer[i];
           if (writePayloads) {
             final int payloadLength = (int) payloadLengthBuffer[i];
             if (payloadLength != lastPayloadLength) {
               lastPayloadLength = payloadLength;
-              posOut.writeVInt((posDelta << 1) | 1);
+              posOut.writeVInt(posDelta);
+              posOut.writeVInt((posLen << 1) | 1);
               posOut.writeVInt(payloadLength);
             } else {
-              posOut.writeVInt(posDelta << 1);
+              posOut.writeVInt(posDelta);
+              posOut.writeVInt(posLen << 1);
             }
 
             if (payloadLength != 0) {
@@ -431,6 +439,7 @@ public final class Lucene90PostingsWriter extends PushPostingsWriterBase {
             }
           } else {
             posOut.writeVInt(posDelta);
+            posOut.writeVInt(posLen);
           }
 
           if (writeOffsets) {
