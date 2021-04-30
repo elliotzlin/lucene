@@ -1,5 +1,7 @@
-package org.apache.lucene.analysis;
+package org.apache.lucene.payloads;
 
+import org.apache.lucene.analysis.TokenFilter;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
 import org.apache.lucene.util.BytesRef;
@@ -9,11 +11,11 @@ import java.io.IOException;
 /**
  * Stores a token's position length as a payload.
  */
-public class PositionLengthPayloadTokenFilter extends TokenFilter {
+public class PayloadPositionLengthTokenFilter extends TokenFilter {
   PositionLengthAttribute posLenAtt = addAttribute(PositionLengthAttribute.class);
   PayloadAttribute payAtt = addAttribute(PayloadAttribute.class);
 
-  public PositionLengthPayloadTokenFilter(TokenStream input) {
+  public PayloadPositionLengthTokenFilter(TokenStream input) {
     super(input);
   }
 
