@@ -11,7 +11,7 @@ import java.io.IOException;
 /**
  * Stores a token's position length as a payload.
  */
-public class PayloadPositionLengthTokenFilter extends TokenFilter {
+public final class PayloadPositionLengthTokenFilter extends TokenFilter {
   PositionLengthAttribute posLenAtt = addAttribute(PositionLengthAttribute.class);
   PayloadAttribute payAtt = addAttribute(PayloadAttribute.class);
 
@@ -22,13 +22,13 @@ public class PayloadPositionLengthTokenFilter extends TokenFilter {
   @Override
   public boolean incrementToken() throws IOException {
     if (input.incrementToken()) {
-      payAtt.setPayload(encodeInt(posLenAtt.getPositionLength()));
+      payAtt.setPayload(encodePosLen(posLenAtt.getPositionLength()));
       return true;
     }
     return false;
   }
 
-  private BytesRef encodeInt(int i) {
+  public static BytesRef encodePosLen(int i) {
     byte[] data = new byte[] {
         (byte) (i >>> 24),
         (byte) (i >>> 16),
@@ -36,5 +36,16 @@ public class PayloadPositionLengthTokenFilter extends TokenFilter {
         (byte) i,
     };
     return new BytesRef(data);
+  }
+
+  public static int decodePosLen(BytesRef payload) {
+    if (payload == null) {
+      return 1;
+    }
+    int posLen = 0;
+    for (int i = 0; i < payload.length; i++) {
+      posLen = (posLen << 8) | Byte.toUnsignedInt(payload.bytes[i]);
+    }
+    return posLen;
   }
 }
