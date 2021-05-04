@@ -1068,4 +1068,154 @@ public class TestPayloadPhraseQuery extends LuceneTestCase {
     e = expectThrows(NullPointerException.class, () -> new PayloadPhraseQuery("field", (String) null));
     assertEquals("Cannot add a null term to PayloadPhraseQuery", e.getMessage());
   }
+
+  /** Tests PayloadPhraseQuery with terms with position length > 1 */
+  public void testPosLen() throws IOException {
+    Directory dir = newDirectory();
+    final Token[] tokens = new Token[3];
+    tokens[0] = new Token();
+    tokens[0].append("a");
+    tokens[0].setPositionIncrement(1);
+    tokens[0].setPositionLength(1);
+    tokens[1] = new Token();
+    tokens[1].append("b");
+    tokens[1].setPositionIncrement(1);
+    tokens[1].setPositionLength(2);
+    tokens[2] = new Token();
+    tokens[2].append("d");
+    tokens[2].setPositionIncrement(1);
+    tokens[2].setPositionLength(1);
+
+    RandomIndexWriter writer = new RandomIndexWriter(random(), dir);
+    Document doc = new Document();
+    doc.add(new TextField("field",
+        new PayloadPositionLengthTokenFilter(new CannedTokenStream(tokens))));
+    writer.addDocument(doc);
+    IndexReader r = writer.getReader();
+    writer.close();
+    IndexSearcher searcher = newSearcher(r);
+
+    // Sanity check; simple "a b" phrase:
+    PayloadPhraseQuery.Builder pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "b"), 1);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    // Now with "a b d"
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "b"), 1);
+    pqBuilder.add(new Term("field", "d"), 2);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    // Test sloppy matching "a b d"~1
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "b"), 1);
+    pqBuilder.add(new Term("field", "d"), 2);
+    pqBuilder.setSlop(1);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    // "a d"~1 should match with slop
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "d"), 1);
+    pqBuilder.setSlop(1);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    r.close();
+    dir.close();
+  }
+
+  /**
+   * Tests PayloadPhraseQuery with terms with position length > 1
+   * and overlapping terms.
+   */
+  public void testIndexedGraph() throws IOException {
+    // Example word lattice from http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html
+    Directory dir = newDirectory();
+    final Token[] tokens = new Token[9];
+    tokens[0] = new Token();
+    tokens[0].append("fast");
+    tokens[0].setPositionIncrement(1);
+    tokens[0].setPositionLength(1);
+    tokens[1] = new Token();
+    tokens[1].append("speedy");
+    tokens[1].setPositionIncrement(0);
+    tokens[1].setPositionLength(1);
+    tokens[2] = new Token();
+    tokens[2].append("wi");
+    tokens[2].setPositionIncrement(1);
+    tokens[2].setPositionLength(1);
+    tokens[3] = new Token();
+    tokens[3].append("wifi");
+    tokens[3].setPositionIncrement(0);
+    tokens[3].setPositionLength(2);
+    tokens[4] = new Token();
+    tokens[4].append("hotspot");
+    tokens[4].setPositionIncrement(0);
+    tokens[4].setPositionLength(3);
+    tokens[5] = new Token();
+    tokens[5].append("fi");
+    tokens[5].setPositionIncrement(1);
+    tokens[5].setPositionLength(1);
+    tokens[6] = new Token();
+    tokens[6].append("network");
+    tokens[6].setPositionIncrement(1);
+    tokens[6].setPositionLength(1);
+    tokens[7] = new Token();
+    tokens[7].append("is");
+    tokens[7].setPositionIncrement(1);
+    tokens[7].setPositionLength(1);
+    tokens[8] = new Token();
+    tokens[8].setPositionIncrement(1);
+    tokens[8].setPositionLength(1);
+    tokens[8].append("down");
+
+    RandomIndexWriter writer = new RandomIndexWriter(random(), dir);
+    Document doc = new Document();
+    doc.add(new TextField("field",
+        new PayloadPositionLengthTokenFilter(new CannedTokenStream(tokens))));
+    writer.addDocument(doc);
+    IndexReader r = writer.getReader();
+    writer.close();
+    IndexSearcher searcher = newSearcher(r);
+
+    // Sanity check; simple "fast wi fi network is down" phrase:
+    PayloadPhraseQuery.Builder pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "fast"), 0);
+    pqBuilder.add(new Term("field", "wi"), 1);
+    pqBuilder.add(new Term("field", "fi"), 2);
+    pqBuilder.add(new Term("field", "network"), 3);
+    pqBuilder.add(new Term("field", "is"), 4);
+    pqBuilder.add(new Term("field", "down"), 5);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    // Now try with alternative phrases "fast hotspot is down"
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "fast"), 0);
+    pqBuilder.add(new Term("field", "hotspot"), 1);
+    pqBuilder.add(new Term("field", "is"), 2);
+    pqBuilder.add(new Term("field", "down"), 3);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    // Should not match "fast hotspot fi"
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "fast"), 0);
+    pqBuilder.add(new Term("field", "hotspot"), 1);
+    pqBuilder.add(new Term("field", "fi"), 2);
+    assertEquals(0, searcher.count(pqBuilder.build()));
+
+    // Exact phrase match with slop "fast hotspot is down"~1
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "fast"), 0);
+    pqBuilder.add(new Term("field", "hotspot"), 1);
+    pqBuilder.add(new Term("field", "is"), 2);
+    pqBuilder.add(new Term("field", "down"), 3);
+    pqBuilder.setSlop(1);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    r.close();
+    dir.close();
+  }
 }
