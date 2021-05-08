@@ -1215,6 +1215,14 @@ public class TestPayloadPhraseQuery extends LuceneTestCase {
     pqBuilder.setSlop(1);
     assertEquals(1, searcher.count(pqBuilder.build()));
 
+    // Sloppy phrase match "fast hotspot down"~1
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "fast"), 0);
+    pqBuilder.add(new Term("field", "hotspot"), 1);
+    pqBuilder.add(new Term("field", "down"), 2);
+    pqBuilder.setSlop(1);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
     r.close();
     dir.close();
   }

@@ -29,10 +29,12 @@ import static org.apache.lucene.payloads.PayloadPositionLengthTokenFilter.decode
 final class PayloadPhrasePositions {
   int position; // position in doc
   int posLen; // current token's position length
+  int prevPosLens; // number of positions from start of phrase
   int count; // remaining pos in this doc
   int offset; // position in phrase
   final int ord; // unique across all PhrasePositions instances
   final PostingsEnum postings; // stream of docs & positions
+  PayloadPhrasePositions prev; // used to make lists
   PayloadPhrasePositions next; // used to make lists
   int rptGroup = -1; // >=0 indicates that this is a repeating PP
   int rptInd; // index in the rptGroup
@@ -59,6 +61,10 @@ final class PayloadPhrasePositions {
     if (count-- > 0) { // read subsequent pos's
       position = postings.nextPosition() - offset;
       posLen = decodePosLen(postings.getPayload());
+      position = position + offset - prevPosLens;
+      if (next != null) {
+        next.prevPosLens = prevPosLens + posLen;
+      }
       return true;
     } else {
       return false;

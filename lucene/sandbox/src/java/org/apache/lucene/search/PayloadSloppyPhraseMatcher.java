@@ -71,6 +71,10 @@ public final class PayloadSloppyPhraseMatcher extends PhraseMatcher {
     for (int i = 0; i < postings.length; ++i) {
       phrasePositions[i] =
           new PayloadPhrasePositions(postings[i].postings, postings[i].position, i, postings[i].terms);
+      if (i > 0) {
+        phrasePositions[i].prev = phrasePositions[i - 1];
+        phrasePositions[i - 1].next = phrasePositions[i];
+      }
     }
 
     approximation =
