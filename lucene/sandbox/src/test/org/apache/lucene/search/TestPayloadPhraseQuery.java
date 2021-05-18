@@ -1128,6 +1128,74 @@ public class TestPayloadPhraseQuery extends LuceneTestCase {
   }
 
   /**
+   * Tests case where same character indexed at same position, but one of them
+   * has a different position length.
+   * @throws IOException
+   */
+  public void testPosLenOverlap() throws IOException {
+    Directory dir = newDirectory();
+    RandomIndexWriter writer = new RandomIndexWriter(random(), dir);
+
+    // There are multiple 'a' tokens on the same position, but one has a greater poslen.
+    final Token[] tokens = new Token[3];
+    tokens[0] = new Token();
+    tokens[0].append("a");
+    tokens[0].setPositionIncrement(1);
+    tokens[0].setPositionLength(2);
+    tokens[1] = new Token();
+    tokens[1].append("a");
+    tokens[1].setPositionIncrement(0);
+    tokens[1].setPositionLength(1);
+    tokens[2] = new Token();
+    tokens[2].append("b");
+    tokens[2].setPositionIncrement(1);
+    tokens[2].setPositionLength(1);
+
+    Document doc = new Document();
+    doc.add(new TextField("field",
+        new PayloadPositionLengthTokenFilter(new CannedTokenStream(tokens))));
+    writer.addDocument(doc);
+
+    // Similar tokens, but this time the longer overlapped term comes first.
+    tokens[0] = new Token();
+    tokens[0].append("c");
+    tokens[0].setPositionIncrement(1);
+    tokens[0].setPositionLength(1);
+    tokens[1] = new Token();
+    tokens[1].append("c");
+    tokens[1].setPositionIncrement(0);
+    tokens[1].setPositionLength(2);
+    tokens[2] = new Token();
+    tokens[2].append("d");
+    tokens[2].setPositionIncrement(1);
+    tokens[2].setPositionLength(1);
+
+    doc = new Document();
+    doc.add(new TextField("field",
+        new PayloadPositionLengthTokenFilter(new CannedTokenStream(tokens))));
+    writer.addDocument(doc);
+
+    IndexReader r = writer.getReader();
+    writer.close();
+    IndexSearcher searcher = newSearcher(r);
+
+    // Search for "a b" phrase:
+    PayloadPhraseQuery.Builder pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "b"), 1);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    // Now for "c d", which should be similar to "c d"
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "c"), 0);
+    pqBuilder.add(new Term("field", "d"), 1);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    r.close();
+    dir.close();
+  }
+
+  /**
    * Tests PayloadPhraseQuery with terms with position length > 1
    * and overlapping terms.
    */
