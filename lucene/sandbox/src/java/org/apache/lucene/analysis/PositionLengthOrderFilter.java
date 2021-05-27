@@ -8,6 +8,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 
+/**
+ * Reordered tokens that overlap in order of increasing position length. This is important for
+ * positional queries.
+ */
 public final class PositionLengthOrderFilter extends TokenFilter {
   private final PositionIncrementAttribute posIncAtt = addAttribute(PositionIncrementAttribute.class);
   private final PositionLengthAttribute posLenAtt = addAttribute(PositionLengthAttribute.class);
