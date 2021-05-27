@@ -29,6 +29,7 @@ import org.apache.lucene.analysis.CannedTokenStream;
 import org.apache.lucene.analysis.MockAnalyzer;
 import org.apache.lucene.analysis.MockTokenFilter;
 import org.apache.lucene.analysis.MockTokenizer;
+import org.apache.lucene.analysis.PositionLengthOrderFilter;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.TokenStream;
@@ -47,7 +48,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.payloads.PayloadPositionLengthTokenFilter;
+import org.apache.lucene.payloads.PayloadPositionLengthFilter;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
@@ -83,7 +84,7 @@ public class TestPayloadPhraseQuery extends LuceneTestCase {
           @Override
           public TokenStreamComponents createComponents(String fieldName) {
             final Tokenizer source = new MockTokenizer(MockTokenizer.WHITESPACE, false);
-            TokenStream result = new PayloadPositionLengthTokenFilter(source);
+            TokenStream result = new PayloadPositionLengthFilter(source);
             return new TokenStreamComponents(source, result);
           }
 
@@ -1083,13 +1084,13 @@ public class TestPayloadPhraseQuery extends LuceneTestCase {
     tokens[1].setPositionLength(2);
     tokens[2] = new Token();
     tokens[2].append("d");
-    tokens[2].setPositionIncrement(1);
+    tokens[2].setPositionIncrement(2);
     tokens[2].setPositionLength(1);
 
     RandomIndexWriter writer = new RandomIndexWriter(random(), dir);
     Document doc = new Document();
     doc.add(new TextField("field",
-        new PayloadPositionLengthTokenFilter(new CannedTokenStream(tokens))));
+        new PayloadPositionLengthFilter(new CannedTokenStream(tokens))));
     writer.addDocument(doc);
     IndexReader r = writer.getReader();
     writer.close();
@@ -1150,10 +1151,12 @@ public class TestPayloadPhraseQuery extends LuceneTestCase {
     tokens[2].append("b");
     tokens[2].setPositionIncrement(1);
     tokens[2].setPositionLength(1);
+    TokenStream ts = new CannedTokenStream(tokens);
+    ts = new PositionLengthOrderFilter(ts);
+    ts = new PayloadPositionLengthFilter(ts);
 
     Document doc = new Document();
-    doc.add(new TextField("field",
-        new PayloadPositionLengthTokenFilter(new CannedTokenStream(tokens))));
+    doc.add(new TextField("field", ts));
     writer.addDocument(doc);
 
     // Similar tokens, but this time the longer overlapped term comes first.
@@ -1169,10 +1172,12 @@ public class TestPayloadPhraseQuery extends LuceneTestCase {
     tokens[2].append("d");
     tokens[2].setPositionIncrement(1);
     tokens[2].setPositionLength(1);
+    ts = new CannedTokenStream(tokens);
+    ts = new PositionLengthOrderFilter(ts);
+    ts = new PayloadPositionLengthFilter(ts);
 
     doc = new Document();
-    doc.add(new TextField("field",
-        new PayloadPositionLengthTokenFilter(new CannedTokenStream(tokens))));
+    doc.add(new TextField("field", ts));
     writer.addDocument(doc);
 
     IndexReader r = writer.getReader();
@@ -1189,6 +1194,149 @@ public class TestPayloadPhraseQuery extends LuceneTestCase {
     pqBuilder = new PayloadPhraseQuery.Builder();
     pqBuilder.add(new Term("field", "c"), 0);
     pqBuilder.add(new Term("field", "d"), 1);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    r.close();
+    dir.close();
+  }
+
+  /**
+   * Similar to testPosLenOverlap, except with the overlap in the middle of the document.
+   * @throws IOException
+   */
+  public void testPosLenOverlap2() throws IOException {
+    Directory dir = newDirectory();
+    RandomIndexWriter writer = new RandomIndexWriter(random(), dir);
+
+    // There are multiple 'b' tokens on the same position, but one has a greater poslen.
+    final Token[] tokens = new Token[5];
+    tokens[0] = new Token();
+    tokens[0].append("a");
+    tokens[0].setPositionIncrement(1);
+    tokens[0].setPositionLength(1);
+    tokens[1] = new Token();
+    tokens[1].append("b");
+    tokens[1].setPositionIncrement(1);
+    tokens[1].setPositionLength(1);
+    tokens[2] = new Token();
+    tokens[2].append("b");
+    tokens[2].setPositionIncrement(0);
+    tokens[2].setPositionLength(2);
+    tokens[3] = new Token();
+    tokens[3].append("c");
+    tokens[3].setPositionIncrement(1);
+    tokens[3].setPositionLength(1);
+    tokens[4] = new Token();
+    tokens[4].append("d");
+    tokens[4].setPositionIncrement(1);
+    tokens[4].setPositionLength(1);
+    TokenStream ts = new CannedTokenStream(tokens);
+    ts = new PositionLengthOrderFilter(ts);
+    ts = new PayloadPositionLengthFilter(ts);
+
+    Document doc = new Document();
+    doc.add(new TextField("field", ts));
+    writer.addDocument(doc);
+
+    IndexReader r = writer.getReader();
+    writer.close();
+    IndexSearcher searcher = newSearcher(r);
+
+    // Sanity check: search for "a b c d" phrase:
+    PayloadPhraseQuery.Builder pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "b"), 1);
+    pqBuilder.add(new Term("field", "c"), 2);
+    pqBuilder.add(new Term("field", "d"), 3);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    // "a b d" should also match.
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "b"), 1);
+    pqBuilder.add(new Term("field", "d"), 2);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    r.close();
+    dir.close();
+  }
+
+  /**
+   * Like testPosLenOverlap2, except with duplicate terms in different positions as well.
+   */
+  public void testPosLenOverlap3() throws IOException {
+    Directory dir = newDirectory();
+    RandomIndexWriter writer = new RandomIndexWriter(random(), dir);
+
+    // a | b c | d | a   | f
+    //   | b   |   | a b |
+    final Token[] tokens = new Token[9];
+    tokens[0] = new Token();
+    tokens[0].append("a");
+    tokens[0].setPositionIncrement(1);
+    tokens[0].setPositionLength(1);
+    tokens[1] = new Token();
+    tokens[1].append("b");
+    tokens[1].setPositionIncrement(1);
+    tokens[1].setPositionLength(1);
+    tokens[2] = new Token();
+    tokens[2].append("b");
+    tokens[2].setPositionIncrement(0);
+    tokens[2].setPositionLength(2);
+    tokens[3] = new Token();
+    tokens[3].append("c");
+    tokens[3].setPositionIncrement(1);
+    tokens[3].setPositionLength(1);
+    tokens[4] = new Token();
+    tokens[4].append("d");
+    tokens[4].setPositionIncrement(1);
+    tokens[4].setPositionLength(1);
+    tokens[5] = new Token();
+    tokens[5].append("a");
+    tokens[5].setPositionIncrement(1);
+    tokens[5].setPositionLength(2);
+    tokens[6] = new Token();
+    tokens[6].append("a");
+    tokens[6].setPositionIncrement(0);
+    tokens[6].setPositionLength(1);
+    tokens[7] = new Token();
+    tokens[7].append("b");
+    tokens[7].setPositionIncrement(1);
+    tokens[7].setPositionLength(1);
+    tokens[8] = new Token();
+    tokens[8].append("f");
+    tokens[8].setPositionIncrement(1);
+    tokens[8].setPositionLength(1);
+    TokenStream ts = new CannedTokenStream(tokens);
+    ts = new PositionLengthOrderFilter(ts);
+    ts = new PayloadPositionLengthFilter(ts);
+
+    Document doc = new Document();
+    doc.add(new TextField("field", ts));
+    writer.addDocument(doc);
+
+    IndexReader r = writer.getReader();
+    writer.close();
+    IndexSearcher searcher = newSearcher(r);
+
+    // Sanity check: search for "a b d" phrase:
+    PayloadPhraseQuery.Builder pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "b"), 1);
+    pqBuilder.add(new Term("field", "d"), 2);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    // "a b f" should also match.
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "b"), 1);
+    pqBuilder.add(new Term("field", "f"), 2);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    // "a f" should also match.
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "f"), 1);
     assertEquals(1, searcher.count(pqBuilder.build()));
 
     r.close();
@@ -1239,11 +1387,13 @@ public class TestPayloadPhraseQuery extends LuceneTestCase {
     tokens[8].setPositionIncrement(1);
     tokens[8].setPositionLength(1);
     tokens[8].append("down");
+    TokenStream ts = new CannedTokenStream(tokens);
+    ts = new PositionLengthOrderFilter(ts);
+    ts = new PayloadPositionLengthFilter(ts);
 
     RandomIndexWriter writer = new RandomIndexWriter(random(), dir);
     Document doc = new Document();
-    doc.add(new TextField("field",
-        new PayloadPositionLengthTokenFilter(new CannedTokenStream(tokens))));
+    doc.add(new TextField("field", ts));
     writer.addDocument(doc);
     IndexReader r = writer.getReader();
     writer.close();
@@ -1290,6 +1440,80 @@ public class TestPayloadPhraseQuery extends LuceneTestCase {
     pqBuilder.add(new Term("field", "down"), 2);
     pqBuilder.setSlop(1);
     assertEquals(1, searcher.count(pqBuilder.build()));
+
+    r.close();
+    dir.close();
+  }
+
+  public void testIndexedGraph2() throws IOException {
+    // Example word lattice from http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html
+    Directory dir = newDirectory();
+    /**
+     * | a b c | d e |
+     * | a e   |
+     */
+    final Token[] tokens = new Token[7];
+    tokens[0] = new Token();
+    tokens[0].append("a");
+    tokens[0].setPositionIncrement(1);
+    tokens[0].setPositionLength(1);
+    tokens[1] = new Token();
+    tokens[1].append("a");
+    tokens[1].setPositionIncrement(0);
+    tokens[1].setPositionLength(1);
+    tokens[2] = new Token();
+    tokens[2].append("b");
+    tokens[2].setPositionIncrement(1);
+    tokens[2].setPositionLength(1);
+    tokens[3] = new Token();
+    tokens[3].append("e");
+    tokens[3].setPositionIncrement(0);
+    tokens[3].setPositionLength(2);
+    tokens[4] = new Token();
+    tokens[4].append("c");
+    tokens[4].setPositionIncrement(1);
+    tokens[4].setPositionLength(1);
+    tokens[5] = new Token();
+    tokens[5].append("d");
+    tokens[5].setPositionIncrement(1);
+    tokens[5].setPositionLength(1);
+    tokens[6] = new Token();
+    tokens[6].append("e");
+    tokens[6].setPositionIncrement(1);
+    tokens[6].setPositionLength(1);
+    TokenStream ts = new CannedTokenStream(tokens);
+    ts = new PositionLengthOrderFilter(ts);
+    ts = new PayloadPositionLengthFilter(ts);
+
+    RandomIndexWriter writer = new RandomIndexWriter(random(), dir);
+    Document doc = new Document();
+    doc.add(new TextField("field", ts));
+    writer.addDocument(doc);
+    IndexReader r = writer.getReader();
+    writer.close();
+    IndexSearcher searcher = newSearcher(r);
+
+    // Sanity check; simple "a b c d" phrase:
+    PayloadPhraseQuery.Builder pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "b"), 1);
+    pqBuilder.add(new Term("field", "c"), 2);
+    pqBuilder.add(new Term("field", "d"), 3);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "b"), 1);
+    pqBuilder.add(new Term("field", "c"), 2);
+    pqBuilder.add(new Term("field", "d"), 3);
+    pqBuilder.setSlop(1);
+    assertEquals(1, searcher.count(pqBuilder.build()));
+
+    pqBuilder = new PayloadPhraseQuery.Builder();
+    pqBuilder.add(new Term("field", "a"), 0);
+    pqBuilder.add(new Term("field", "e"), 1);
+    pqBuilder.setSlop(3);
+    assertEquals(2, searcher.count(pqBuilder.build()));
 
     r.close();
     dir.close();

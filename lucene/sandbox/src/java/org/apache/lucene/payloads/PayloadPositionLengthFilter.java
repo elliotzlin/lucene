@@ -11,11 +11,11 @@ import java.io.IOException;
 /**
  * Stores a token's position length as a payload.
  */
-public final class PayloadPositionLengthTokenFilter extends TokenFilter {
-  PositionLengthAttribute posLenAtt = addAttribute(PositionLengthAttribute.class);
-  PayloadAttribute payAtt = addAttribute(PayloadAttribute.class);
+public final class PayloadPositionLengthFilter extends TokenFilter {
+  private final PositionLengthAttribute posLenAtt = addAttribute(PositionLengthAttribute.class);
+  private final PayloadAttribute payAtt = addAttribute(PayloadAttribute.class);
 
-  public PayloadPositionLengthTokenFilter(TokenStream input) {
+  public PayloadPositionLengthFilter(TokenStream input) {
     super(input);
   }
 
@@ -29,13 +29,16 @@ public final class PayloadPositionLengthTokenFilter extends TokenFilter {
   }
 
   public static BytesRef encodePosLen(int i) {
-    byte[] data = new byte[] {
-        (byte) (i >>> 24),
-        (byte) (i >>> 16),
-        (byte) (i >>> 8),
-        (byte) i,
-    };
-    return new BytesRef(data);
+    int numBitsRequired = 32 - Integer.numberOfLeadingZeros(i);
+    int numBytesRequired = (numBitsRequired + 7) / 8;
+    BytesRef ret = new BytesRef(4);
+    ret.length = numBytesRequired;
+    for (int index = numBytesRequired - 1; index >= 0; index--) {
+      ret.bytes[index] = (byte) i;
+      i >>>= 8;
+    }
+    assert i == 0;
+    return ret;
   }
 
   public static int decodePosLen(BytesRef payload) {
@@ -43,7 +46,7 @@ public final class PayloadPositionLengthTokenFilter extends TokenFilter {
       return 1;
     }
     int posLen = 0;
-    for (int i = 0; i < payload.length; i++) {
+    for (int i = payload.offset; i < payload.offset + payload.length; i++) {
       posLen = (posLen << 8) | Byte.toUnsignedInt(payload.bytes[i]);
     }
     return posLen;

@@ -476,10 +476,10 @@ public class PayloadPhraseQuery extends Query {
           if (scoreMode == ScoreMode.TOP_SCORES) {
             postingsEnum =
                 impactsEnum =
-                    te.impacts(exposeOffsets ? PostingsEnum.OFFSETS : PostingsEnum.POSITIONS);
+                    te.impacts(exposeOffsets ? PostingsEnum.ALL : PostingsEnum.PAYLOADS);
           } else {
             postingsEnum =
-                te.postings(null, exposeOffsets ? PostingsEnum.OFFSETS : PostingsEnum.POSITIONS);
+                te.postings(null, exposeOffsets ? PostingsEnum.ALL : PostingsEnum.PAYLOADS);
             impactsEnum = new SlowImpactsEnum(postingsEnum);
           }
           postingsFreqs[i] = new PostingsAndFreq(postingsEnum, impactsEnum, positions[i], t);

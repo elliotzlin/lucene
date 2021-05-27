@@ -18,16 +18,18 @@ package org.apache.lucene.search;
 
 import java.io.IOException;
 import org.apache.lucene.index.*;
+import org.apache.lucene.payloads.PayloadPositionLengthFilter;
 
-import static org.apache.lucene.payloads.PayloadPositionLengthTokenFilter.decodePosLen;
+import static org.apache.lucene.payloads.PayloadPositionLengthFilter.decodePosLen;
 
 /**
  * Alternate {@link PhrasePositions} that loads in the current token's position
- * length from its payload. See {@link org.apache.lucene.payloads.PayloadPositionLengthTokenFilter}
+ * length from its payload. See {@link PayloadPositionLengthFilter}
  * Position of a term in a document that takes into account the term offset within the phrase.
  */
 final class PayloadPhrasePositions {
   int position; // position in doc
+  int location; // actual position in doc
   int posLen; // current token's position length
   int prevPosLens; // number of positions from start of phrase
   int count; // remaining pos in this doc
@@ -59,8 +61,9 @@ final class PayloadPhrasePositions {
    */
   final boolean nextPosition() throws IOException {
     if (count-- > 0) { // read subsequent pos's
-      position = postings.nextPosition() - offset;
+      location = postings.nextPosition();
       posLen = decodePosLen(postings.getPayload());
+      position = location - offset;
       position = position + offset - prevPosLens;
       if (next != null) {
         next.prevPosLens = prevPosLens + posLen;

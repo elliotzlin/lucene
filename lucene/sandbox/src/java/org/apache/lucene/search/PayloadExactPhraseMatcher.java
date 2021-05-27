@@ -28,16 +28,16 @@ import org.apache.lucene.index.Impacts;
 import org.apache.lucene.index.ImpactsEnum;
 import org.apache.lucene.index.ImpactsSource;
 import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.payloads.PayloadPositionLengthTokenFilter;
+import org.apache.lucene.payloads.PayloadPositionLengthFilter;
 import org.apache.lucene.search.similarities.Similarity.SimScorer;
 import org.apache.lucene.util.PriorityQueue;
 
-import static org.apache.lucene.payloads.PayloadPositionLengthTokenFilter.decodePosLen;
+import static org.apache.lucene.payloads.PayloadPositionLengthFilter.decodePosLen;
 
 /**
  * Find exact phrases, reading in each token's position length from its payload.
  *
- * Tokens should be indexed using {@link PayloadPositionLengthTokenFilter} to
+ * Tokens should be indexed using {@link PayloadPositionLengthFilter} to
  * store its position length into its payload.
  */
 public final class PayloadExactPhraseMatcher extends PhraseMatcher {
@@ -124,6 +124,22 @@ public final class PayloadExactPhraseMatcher extends PhraseMatcher {
     return true;
   }
 
+  /**
+   * Increments the given pos enum to the next position. Return {@code false} if the enum was
+   * exhausted and {@code true} otherwise.
+   */
+  private static boolean incrementPosting(PostingsAndPosition posting)
+    throws IOException {
+    if (posting.upTo == posting.freq) {
+      return false;
+    } else {
+      posting.pos = posting.postings.nextPosition();
+      posting.posLen = decodePosLen(posting.postings.getPayload());
+      posting.upTo += 1;
+    }
+    return true;
+  }
+
   @Override
   public void reset() throws IOException {
     for (PostingsAndPosition posting : postings) {
@@ -145,9 +161,9 @@ public final class PayloadExactPhraseMatcher extends PhraseMatcher {
     }
     advanceHead:
     while (true) {
-      PostingsAndPosition prev = lead;
       for (int j = 1; j < postings.length; ++j) {
         final PostingsAndPosition posting = postings[j];
+        final PostingsAndPosition prev = postings[j - 1];
         final int expectedPos;
         if (posting.offset == prev.offset) {
           expectedPos = prev.pos;
@@ -164,13 +180,13 @@ public final class PayloadExactPhraseMatcher extends PhraseMatcher {
         }
 
         if (posting.pos != expectedPos) { // we advanced too far
-          if (advancePosition(lead, posting.pos - posting.offset + lead.offset)) {
-            continue advanceHead;
+          // Increment previous enum and then rewind.
+          if (incrementPosting(prev)) {
+            j = j < 2 ? j - 1 : j - 2;
           } else {
             break advanceHead;
           }
         }
-        prev = posting;
       }
       return true;
     }

@@ -14,14 +14,14 @@ import org.apache.lucene.index.Impact;
 import org.apache.lucene.index.Impacts;
 import org.apache.lucene.index.ImpactsSource;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.payloads.PayloadPositionLengthTokenFilter;
+import org.apache.lucene.payloads.PayloadPositionLengthFilter;
 import org.apache.lucene.search.similarities.Similarity.SimScorer;
 import org.apache.lucene.util.FixedBitSet;
 
 /**
  * A sloppy phrase matcher that reads in each token's position length from its payload.
  *
- * Tokens should be indexed using {@link PayloadPositionLengthTokenFilter} to
+ * Tokens should be indexed using {@link PayloadPositionLengthFilter} to
  * store its position length in the payload.
  */
 public final class PayloadSloppyPhraseMatcher extends PhraseMatcher {
