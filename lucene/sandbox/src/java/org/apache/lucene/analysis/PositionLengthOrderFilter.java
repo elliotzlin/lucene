@@ -50,7 +50,6 @@ public final class PositionLengthOrderFilter extends TokenFilter {
       if (cacheIdx >= 0 && (++cacheIdx < cache.size() || clearCache())) {
         // Emit state from cache if nonempty and non-exhausted.
         attState = cache.get(cacheIdx);
-        cacheIdx += 1;
         restoreState(attState.state);
         return true;
       } else {

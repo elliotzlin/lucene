@@ -60,4 +60,45 @@ public class TestPositionLengthOrderFilter extends BaseTokenStreamTestCase {
         new int[] {1, 1, 0, 1, 1},
         new int[] {1, 1, 2, 1, 1});
   }
+
+  /** Lots of overlapping tokens w/poslen > 2; test they are all emitted correctly. */
+  public void testOverlappingTokens2() throws IOException {
+    final Token[] tokens = new Token[5];
+    tokens[0] = new Token();
+    tokens[0].append("a");
+    tokens[0].setPositionIncrement(1);
+    tokens[0].setPositionLength(1);
+    tokens[1] = new Token();
+    tokens[1].append("b");
+    tokens[1].setPositionIncrement(0);
+    tokens[1].setPositionLength(2);
+    tokens[2] = new Token();
+    tokens[2].append("c");
+    tokens[2].setPositionIncrement(0);
+    tokens[2].setPositionLength(2);
+    tokens[3] = new Token();
+    tokens[3].append("d");
+    tokens[3].setPositionIncrement(0);
+    tokens[3].setPositionLength(2);
+    tokens[4] = new Token();
+    tokens[4].append("e");
+    tokens[4].setPositionIncrement(1);
+    tokens[4].setPositionLength(1);
+
+    PositionLengthOrderFilter tokFilter =
+        new PositionLengthOrderFilter(new CannedTokenStream(tokens));
+
+    String[] tokenTypes = new String[5];
+    Arrays.fill(tokenTypes, TypeAttribute.DEFAULT_TYPE);
+
+    assertTokenStreamContents(
+        tokFilter,
+        new String[] {"a", "b", "c", "d", "e"},
+        null,
+        null,
+        tokenTypes,
+        new int[] {1, 0, 0, 0, 1},
+        new int[] {1, 2, 2, 2, 1});
+
+  }
 }
