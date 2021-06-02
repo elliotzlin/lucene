@@ -168,7 +168,16 @@ public final class PayloadExactPhraseMatcher extends PhraseMatcher {
         if (posting.offset == prev.offset) {
           expectedPos = prev.pos;
         } else if (posting.offset > prev.offset) {
-          expectedPos = prev.pos + prev.posLen;
+          if (posting.offset - prev.offset == 1) {
+            expectedPos = prev.pos + prev.posLen;
+          } else {
+            // NOTE: if the offset increases by more than 1 between tokens (e.g. if stop words were
+            // removed) we don't currently have any way to know the expected position without
+            // knowing the intermediary position lengths. For now assume position lengths of 1 for
+            // the skipped positions.
+            // TODO: Support offset increases > 1
+            expectedPos = prev.pos + prev.posLen + (posting.offset - prev.offset - 1);
+          }
         } else {
           // Shouldn't happen? Offsets should be monotonically increasing...
           expectedPos = posting.pos - prev.posLen;
